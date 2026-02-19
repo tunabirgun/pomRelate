@@ -24,15 +24,15 @@ pomRelate enables researchers to map orthologs, explore protein-protein interact
 
 ## Species Coverage
 
-| Species | Taxon ID | KEGG Code | Notes |
-|---|---|---|---|
-| *Schizosaccharomyces pombe* | 4896 | spo | Default source species |
-| *Saccharomyces cerevisiae* | 4932 | sce | |
-| *Drosophila melanogaster* | 7227 | dme | |
-| *Caenorhabditis elegans* | 6239 | cel | |
-| *Arabidopsis thaliana* | 3702 | ath | |
-| *Mus musculus* | 10090 | mmu | |
-| *Homo sapiens* | 9606 | hsa | |
+| Species | Taxon ID | KEGG Code |
+|---|---|---|
+| *Schizosaccharomyces pombe* | 4896 | spo |
+| *Saccharomyces cerevisiae* | 4932 | sce |
+| *Drosophila melanogaster* | 7227 | dme |
+| *Caenorhabditis elegans* | 6239 | cel |
+| *Arabidopsis thaliana* | 3702 | ath |
+| *Mus musculus* | 10090 | mmu |
+| *Homo sapiens* | 9606 | hsa |
 
 ## Methods
 
@@ -71,28 +71,6 @@ Gene trees are derived from eggNOG v7 pre-computed protein family phylogenies, p
 3. Optionally select **target species** for cross-species ortholog lookup
 4. Adjust the **PPI score threshold** (default: 700)
 5. Click **Analyze**
-
-## Building Data
-
-The recommended approach rebuilds all species data from scratch and automatically splits any files over 95 MB into chunks for GitHub compatibility:
-
-```bash
-python scripts/rebuild_and_chunk.py
-```
-
-This downloads per-species data from STRING v12.0 and KEGG, then produces chunked JSON files with a `manifest.json` in each species directory listing the chunk counts. The web app reads the manifest at runtime and reassembles chunks transparently via `loadChunkedJSON()`.
-
-Individual build scripts are also available:
-
-```bash
-# Per-species data (STRING + KEGG)
-python scripts/build_species_data.py
-
-# Phylogeny data (STRING orthology + eggNOG v7 trees)
-python scripts/build_phylogeny_data.py
-```
-
-Requirements: Python 3.8+ (standard library only).
 
 ## Local Development
 
