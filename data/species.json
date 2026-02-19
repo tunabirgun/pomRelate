@@ -1,0 +1,52 @@
+[
+  {
+    "taxid": "4896",
+    "string_type": "core",
+    "compact_name": "Schizosaccharomyces pombe",
+    "official_name": "Schizosaccharomyces pombe",
+    "domain": "Eukaryotes",
+    "string_taxid": "284812"
+  },
+  {
+    "taxid": "4932",
+    "string_type": "core",
+    "compact_name": "Saccharomyces cerevisiae",
+    "official_name": "Saccharomyces cerevisiae",
+    "domain": "Eukaryotes"
+  },
+  {
+    "taxid": "7227",
+    "string_type": "core",
+    "compact_name": "Drosophila melanogaster",
+    "official_name": "Drosophila melanogaster",
+    "domain": "Eukaryotes"
+  },
+  {
+    "taxid": "6239",
+    "string_type": "core",
+    "compact_name": "Caenorhabditis elegans",
+    "official_name": "Caenorhabditis elegans",
+    "domain": "Eukaryotes"
+  },
+  {
+    "taxid": "3702",
+    "string_type": "core",
+    "compact_name": "Arabidopsis thaliana",
+    "official_name": "Arabidopsis thaliana",
+    "domain": "Eukaryotes"
+  },
+  {
+    "taxid": "10090",
+    "string_type": "core",
+    "compact_name": "Mus musculus",
+    "official_name": "Mus musculus",
+    "domain": "Eukaryotes"
+  },
+  {
+    "taxid": "9606",
+    "string_type": "core",
+    "compact_name": "Homo sapiens",
+    "official_name": "Homo sapiens",
+    "domain": "Eukaryotes"
+  }
+]

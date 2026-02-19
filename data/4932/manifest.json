@@ -1,0 +1,10 @@
+{
+  "aliases": 1,
+  "go": 1,
+  "info": 1,
+  "kegg_enrichment": 1,
+  "kegg_pathways": 1,
+  "name_lookup": 1,
+  "other_terms": 1,
+  "ppi": 1
+}

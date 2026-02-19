@@ -1,0 +1,27 @@
+{
+  "databases": {
+    "string": {
+      "name": "STRING",
+      "version": "v12.0",
+      "description": "Protein-protein interaction networks and functional enrichment",
+      "url": "https://string-db.org",
+      "release_date": "2023-09"
+    },
+    "kegg": {
+      "name": "KEGG",
+      "version": "Current",
+      "description": "Pathway maps and gene-pathway mappings",
+      "url": "https://www.kegg.jp",
+      "release_date": "current"
+    },
+    "go": {
+      "name": "Gene Ontology",
+      "version": "via STRING v12.0",
+      "description": "Gene Ontology annotations via STRING enrichment terms",
+      "url": "https://geneontology.org",
+      "release_date": "via STRING"
+    }
+  },
+  "download_date": "2026-02-19",
+  "tool_version": "1.0.0"
+}

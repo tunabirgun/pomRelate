@@ -1,0 +1,23 @@
+{
+  "source": "STRING + eggNOG",
+  "string_version": "v12.0",
+  "eggnog_version": "7.0",
+  "taxonomy_level": "2759",
+  "taxonomy_name": "Eukaryota",
+  "description": "Orthologous groups from STRING v12.0 at the Eukaryota level, with gene trees from eggNOG v7",
+  "tree_method": "eggNOG v7 phylogeny-based protein family trees (domain-centric workflow with ML inference)",
+  "species_count": 7,
+  "orthogroup_count": 7501,
+  "gene_count": 91878,
+  "tree_count": 7501,
+  "tree_chunks": [
+    "trees_0.json"
+  ],
+  "version": "1.0.0",
+  "generated_date": "2026-02-19",
+  "url": "https://string-db.org / https://eggnogdb.org",
+  "citations": [
+    "Szklarczyk, D., et al. (2023). The STRING database in 2023. Nucleic Acids Research, 51(D1), D483-D489.",
+    "Hern\u00e1ndez-Plaza, A., et al. (2026). eggNOG v7. Nucleic Acids Research, 54(D1), D402."
+  ]
+}
