@@ -1,5 +1,5 @@
-/**
- * pomRelate — Publication-Quality Plot Generation
+﻿/**
+ * pomRelate â€” Publication-Quality Plot Generation
  * SVG-based enrichment plots: bar chart, dot plot, and hierarchical clustering dendrogram.
  * Designed for academic publication standards.
  */
@@ -66,7 +66,7 @@ function createBarChart(results, topN = 20, palette = 'Default', title = 'Enrich
     const width = margin.left + plotW + margin.right;
     const height = margin.top + plotH + margin.bottom;
 
-    const maxVal = Math.max(...data.map(d => -Math.log10(Math.max(d.fdr, 1e-300))));
+    const maxVal = Math.max(...data.map(d => -Math.log10(Math.max(d.fdr, 1e-16))));
     const xMax = niceMax(maxVal);
     const xScale = (v) => (v / xMax) * plotW;
 
@@ -83,7 +83,7 @@ function createBarChart(results, topN = 20, palette = 'Default', title = 'Enrich
 
     // Subtitle: FDR threshold
     const sigCount = data.filter(d => d.fdr < 0.05).length;
-    addText(svg, width / 2, 38, `Top ${data.length} terms · ${sigCount} significant (FDR < 0.05)`, {
+    addText(svg, width / 2, 38, `Top ${data.length} terms Â· ${sigCount} significant (FDR < 0.05)`, {
         size: '10px', fill: textMuted, anchor: 'middle',
         family: "'EB Garamond', Georgia, serif"
     });
@@ -103,12 +103,12 @@ function createBarChart(results, topN = 20, palette = 'Default', title = 'Enrich
     }
 
     // X-axis label
-    addText(svg, margin.left + plotW / 2, height - 10, '−log\u2081\u2080(FDR)', {
+    addText(svg, margin.left + plotW / 2, height - 10, 'âˆ’log\u2081\u2080(FDR)', {
         size: '11px', fill: textColor, anchor: 'middle', weight: '500',
         family: "'EB Garamond', Georgia, serif"
     });
 
-    // Color scale: fold enrichment → shades
+    // Color scale: fold enrichment â†’ shades
     const maxFold = Math.max(...data.map(d => d.fold));
     const minFold = Math.min(...data.map(d => d.fold));
 
@@ -116,7 +116,7 @@ function createBarChart(results, topN = 20, palette = 'Default', title = 'Enrich
     for (let i = 0; i < data.length; i++) {
         const d = data[i];
         const y = i * (barH + barGap);
-        const val = -Math.log10(Math.max(d.fdr, 1e-300));
+        const val = -Math.log10(Math.max(d.fdr, 1e-16));
         const w = Math.max(xScale(val), 2);
 
         const t = maxFold > minFold ? (d.fold - minFold) / (maxFold - minFold) : 0.5;
@@ -214,10 +214,10 @@ function createDotPlot(results, topN = 20, palette = 'Default', title = 'Enrichm
     const maxFold = Math.max(...data.map(d => d.fold));
     const xMax = niceMax(maxFold);
     const maxGeneCount = Math.max(...data.map(d => d.geneCount));
-    const maxLogFDR = Math.max(...data.map(d => -Math.log10(Math.max(d.fdr, 1e-300))));
+    const maxLogFDR = Math.max(...data.map(d => -Math.log10(Math.max(d.fdr, 1e-16))));
 
     const xScale = (v) => (v / xMax) * plotW;
-    const rScale = (v) => 3 + (v / Math.max(maxGeneCount, 1)) * 9;
+    const rScale = (v) => 3 + Math.sqrt(v / Math.max(maxGeneCount, 1)) * 9;
 
     const svg = makeSVG(width, height);
 
@@ -229,7 +229,7 @@ function createDotPlot(results, topN = 20, palette = 'Default', title = 'Enrichm
     });
 
     const sigCount = data.filter(d => d.fdr < 0.05).length;
-    addText(svg, width / 2, 38, `Top ${data.length} terms · ${sigCount} significant (FDR < 0.05)`, {
+    addText(svg, width / 2, 38, `Top ${data.length} terms Â· ${sigCount} significant (FDR < 0.05)`, {
         size: '10px', fill: textMuted, anchor: 'middle',
         family: "'EB Garamond', Georgia, serif"
     });
@@ -266,7 +266,7 @@ function createDotPlot(results, topN = 20, palette = 'Default', title = 'Enrichm
         const x = xScale(d.fold);
         const r = rScale(d.geneCount);
 
-        const logFDR = -Math.log10(Math.max(d.fdr, 1e-300));
+        const logFDR = -Math.log10(Math.max(d.fdr, 1e-16));
         const intensity = maxLogFDR > 0 ? Math.min(logFDR / maxLogFDR, 1) : 0.5;
         const colorFn = PALETTES[palette] || PALETTES['Default'];
         const dotColor = colorFn(intensity, theme);
@@ -310,9 +310,9 @@ function createDotPlot(results, topN = 20, palette = 'Default', title = 'Enrichm
         });
     }
 
-    // Color legend: −log₁₀(FDR) gradient
+    // Color legend: âˆ’logâ‚â‚€(FDR) gradient
     const colorLegY = 18 + sizeLevels.length * 24 + 14;
-    addText(g, legX, colorLegY, '−log\u2081\u2080(FDR)', {
+    addText(g, legX, colorLegY, 'âˆ’log\u2081\u2080(FDR)', {
         size: '9px', fill: textColor, anchor: 'start', weight: '600',
         family: "'EB Garamond', Georgia, serif"
     });
@@ -435,14 +435,14 @@ function truncLabel(str, max) {
     if (!str) return '';
     str = str.charAt(0).toUpperCase() + str.slice(1);
     if (str.length <= max) return str;
-    return str.substring(0, max - 1) + '…';
+    return str.substring(0, max - 1) + 'â€¦';
 }
 
 // ===== Hierarchical Clustering =====
 
 /**
  * Compute pairwise Jaccard distance matrix between enrichment terms based on gene overlap.
- * Jaccard distance = 1 - |A ∩ B| / |A ∪ B|
+ * Jaccard distance = 1 - |A âˆ© B| / |A âˆª B|
  */
 function computeJaccardDistanceMatrix(data) {
     const n = data.length;
@@ -528,7 +528,7 @@ function layoutDendrogram(root, maxHeight, plotW, rowH) {
     const branches = [];
     let leafIndex = 0;
 
-    // x-scale: height → horizontal position (0 = leaves on right, maxHeight = root on left)
+    // x-scale: height â†’ horizontal position (0 = leaves on right, maxHeight = root on left)
     const xScale = (h) => plotW * (1 - h / Math.max(maxHeight, 1e-10));
 
     function traverse(node) {
@@ -601,11 +601,11 @@ function createClusterTree(results, topN = 20, palette = 'Default', title = 'Enr
 
     const layout = layoutDendrogram(tree, maxTreeHeight, plotW, rowH);
 
-    // Color scale: −log₁₀(FDR) → intensity
-    const maxLogFDR = Math.max(...data.map(d => -Math.log10(Math.max(d.fdr, 1e-300))));
+    // Color scale: âˆ’logâ‚â‚€(FDR) â†’ intensity
+    const maxLogFDR = Math.max(...data.map(d => -Math.log10(Math.max(d.fdr, 1e-16))));
     const colorFn = PALETTES[palette] || PALETTES['Default'];
     const fdrColor = (fdr) => {
-        const logFDR = -Math.log10(Math.max(fdr, 1e-300));
+        const logFDR = -Math.log10(Math.max(fdr, 1e-16));
         const t = maxLogFDR > 0 ? Math.min(logFDR / maxLogFDR, 1) : 0.5;
         return colorFn(t, theme);
     };
@@ -619,7 +619,7 @@ function createClusterTree(results, topN = 20, palette = 'Default', title = 'Enr
         family: "'EB Garamond', Georgia, serif"
     });
     const sigCount = data.filter(d => d.fdr < 0.05).length;
-    addText(svg, width / 2, 38, `Top ${data.length} terms · ${sigCount} significant (FDR < 0.05) · Clustered by gene overlap (Jaccard)`, {
+    addText(svg, width / 2, 38, `Top ${data.length} terms Â· ${sigCount} significant (FDR < 0.05) Â· Clustered by gene overlap (Jaccard)`, {
         size: '10px', fill: textMuted, anchor: 'middle',
         family: "'EB Garamond', Georgia, serif"
     });
@@ -686,7 +686,7 @@ function createClusterTree(results, topN = 20, palette = 'Default', title = 'Enr
         });
     }
     addLine(g, 0, plotH + 3, plotW, plotH + 3, axisColor, 1);
-    addText(svg, margin.left + plotW / 2, height - 6, 'Jaccard Distance', {
+    addText(svg, margin.left + plotW / 2, height - 6, 'UPGMA Height', {
         size: '10px', fill: textColor, anchor: 'middle', weight: '500',
         family: "'EB Garamond', Georgia, serif"
     });
@@ -697,7 +697,7 @@ function createClusterTree(results, topN = 20, palette = 'Default', title = 'Enr
     const gradH = Math.min(plotH * 0.4, 80);
     const gradW = 12;
 
-    addText(g, legX, legY - 6, '−log\u2081\u2080(FDR)', {
+    addText(g, legX, legY - 6, 'âˆ’log\u2081\u2080(FDR)', {
         size: '9px', fill: textColor, anchor: 'start', weight: '600',
         family: "'EB Garamond', Georgia, serif"
     });
