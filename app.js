@@ -15,7 +15,7 @@ const state = {
     scoreThreshold: 700,
     goEnrichmentResults: null,
     keggEnrichmentResults: null,
-    enrichmentPlotType: 'bar',
+    enrichmentPlotType: { go: 'bar', kegg: 'bar' },
     phylogenyData: null,
     _orthogroupData: null,
     _orthoLoadFailed: false,
@@ -423,7 +423,17 @@ async function loadOrthogroupData() {
 }
 
 // ===== Analysis =====
+let _analysisRunning = false;
 async function runAnalysis() {
+    if (_analysisRunning) return;
+    _analysisRunning = true;
+    try {
+        await _runAnalysisInner();
+    } finally {
+        _analysisRunning = false;
+    }
+}
+async function _runAnalysisInner() {
     const sourceTaxid = els.sourceSelect.value;
     if (!sourceTaxid) return alert('Please select a source species.');
 
@@ -715,7 +725,7 @@ function renderHubGenesTable(nodes, container, taxid) {
                         <th>Gene</th>
                         <th>Type</th>
                         <th>Degree</th>
-                        <th>Total Score</th>
+                        <th>Avg Confidence</th>
                         <th>Annotation</th>
                     </tr>
                 </thead>
@@ -915,7 +925,7 @@ function buildEnrichmentTab(type, result, sourceTaxid) {
         return;
     }
 
-    const currentPlotType = state.enrichmentPlotType;
+    const currentPlotType = state.enrichmentPlotType[type] || 'bar';
 
     let html = `
         <div id="${type}-enrichment-stats" class="enrichment-stats">${statsHtml}</div>
@@ -1014,7 +1024,7 @@ function renderEnrichmentRows(type, sourceTaxid, topN) {
 }
 
 function switchEnrichmentPlot(type, plotType) {
-    state.enrichmentPlotType = plotType;
+    state.enrichmentPlotType[type] = plotType;
     // Update active class for buttons
     document.querySelectorAll(`#tab-${type}-enrichment .plot-toggle`).forEach(btn => {
         if (btn.dataset.plot === plotType) {
@@ -1041,8 +1051,8 @@ function updateEnrichmentPlotAndTable(type, forcedPlotType) {
     const paletteSelect = document.getElementById(`enrich-palette-${type}`);
     const palette = paletteSelect ? paletteSelect.value : 'Default';
 
-    const plotType = forcedPlotType || state.enrichmentPlotType;
-    state.enrichmentPlotType = plotType;
+    const plotType = forcedPlotType || state.enrichmentPlotType[type] || 'bar';
+    state.enrichmentPlotType[type] = plotType;
 
     document.querySelectorAll(`#tab-${type}-enrichment .plot-toggle`).forEach(btn => {
         btn.classList.toggle('active', btn.dataset.plot === plotType);
