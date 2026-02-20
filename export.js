@@ -115,8 +115,16 @@ function downloadPDF(svgElement, filename, scale = 2) {
     const svgStr = serializer.serializeToString(clone);
 
     const canvas = document.createElement('canvas');
-    const w = svgElement.getAttribute('width') || svgElement.getBoundingClientRect().width;
-    const h = svgElement.getAttribute('height') || svgElement.getBoundingClientRect().height;
+    // Use same robust dimension logic as PNG export
+    const rect = svgElement.getBoundingClientRect();
+    let w = rect.width;
+    let h = rect.height;
+    const attrW = svgElement.getAttribute('width');
+    const attrH = svgElement.getAttribute('height');
+    if ((w === 0 || h === 0) && attrW && !attrW.includes('%')) w = parseFloat(attrW);
+    if ((w === 0 || h === 0) && attrH && !attrH.includes('%')) h = parseFloat(attrH);
+    if (w === 0) w = 800;
+    if (h === 0) h = 600;
     canvas.width = w * scale;
     canvas.height = h * scale;
 
@@ -260,7 +268,7 @@ function injectComputedStyles(original, clone) {
 
     for (let i = 0; i < origChildren.length && i < cloneChildren.length; i++) {
         const computed = getComputedStyle(origChildren[i]);
-        const important = ['fill', 'stroke', 'font-family', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'opacity'];
+        const important = ['fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'fill-opacity', 'font-family', 'font-size', 'font-weight', 'text-anchor', 'dominant-baseline', 'opacity', 'visibility'];
         for (const prop of important) {
             const val = computed.getPropertyValue(prop);
             if (val) cloneChildren[i].style.setProperty(prop, val);
