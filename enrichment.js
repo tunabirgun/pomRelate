@@ -6,7 +6,7 @@
 
 // ===== Math Utilities =====
 
-// Log-factorial using Stirling's approximation for large n, exact for small n
+// Log-factorial via exact iterative summation, cached for O(1) re-use
 const _lfCache = [0]; // lfact(0) = 0
 function lfact(n) {
     if (n < 0) return 0;
@@ -51,15 +51,17 @@ function hypergeomPValue(k, n, K, N) {
 /**
  * Benjamini-Hochberg FDR correction.
  * Takes array of {pValue, ...} objects, adds .fdr field in-place.
+ * @param {Object[]} results - array of objects with pValue field
+ * @param {number} totalTests - total number of hypotheses tested (including terms with k=0)
  * Returns the same array sorted by pValue ascending.
  */
-function bhFDR(results) {
+function bhFDR(results, totalTests) {
     results.sort((a, b) => a.pValue - b.pValue);
-    const m = results.length;
-    for (let i = m - 1; i >= 0; i--) {
+    const m = totalTests || results.length;
+    for (let i = results.length - 1; i >= 0; i--) {
         const rank = i + 1;
         const raw = (results[i].pValue * m) / rank;
-        if (i < m - 1) {
+        if (i < results.length - 1) {
             results[i].fdr = Math.min(raw, results[i + 1].fdr);
         } else {
             results[i].fdr = Math.min(raw, 1);
@@ -104,8 +106,6 @@ function runGOEnrichment(queryProteinIds, goData, categoryFilter) {
     // Query: filter to proteins present in GO background
     const queryInBg = queryProteinIds.filter(pid => goData[pid]);
     const n = queryInBg.length;
-    const querySet = new Set(queryInBg);
-
     if (n === 0) {
         return { results: [], stats: { mapped: 0, total: queryProteinIds.length, termsTotal: Object.keys(termBg).length } };
     }
@@ -144,7 +144,7 @@ function runGOEnrichment(queryProteinIds, goData, categoryFilter) {
         });
     }
 
-    bhFDR(results);
+    bhFDR(results, Object.keys(termBg).length);
 
     return {
         results,
@@ -278,7 +278,7 @@ function runKEGGEnrichment(queryProteinIds, keggPathwayData, aliasData, infoData
         });
     }
 
-    bhFDR(results);
+    bhFDR(results, Object.keys(pathwayBg).length);
 
     return {
         results,
