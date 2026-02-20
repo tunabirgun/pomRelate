@@ -14,7 +14,7 @@ pomRelate enables researchers to map orthologs, explore protein-protein interact
 - **KEGG Pathway Annotations** — Per-gene KEGG pathway mappings
 - **GO Enrichment Analysis** — Over-representation analysis using Fisher's Exact Test (hypergeometric) with Benjamini-Hochberg FDR correction
 - **KEGG Enrichment Analysis** — Pathway enrichment with the same statistical framework
-- **Publication-Quality Plots** — Bar charts, dot plots, and hierarchical clustering dendrograms with 7 color palettes
+- **Publication-Quality Plots** — Bar charts, dot plots (area-proportional sizing), and hierarchical clustering dendrograms with 7 color palettes
 - **Hierarchical Clustering Tree** — UPGMA dendrogram clustering enriched terms by gene set overlap (Jaccard distance)
 - **Interactive Gene Tooltips** — Hover over any gene to see annotation, GO terms, KEGG pathways, and links to UniProt/STRING/AmiGO/KEGG/eggNOG
 - **Phylogeny Analysis** — Per-gene phylogenetic trees from eggNOG v7, mapped via STRING orthologous groups at the Eukaryota level
@@ -47,13 +47,42 @@ Cross-species ortholog identification uses a two-tier approach:
 
 Interaction data is sourced from STRING v12.0. The network visualization uses a synchronous force-directed layout (300 iterations). Hub genes are identified based on degree centrality (top 20%, minimum degree 3).
 
+**Key design details:**
+
+- **Bidirectional edge search** — STRING PPI data may store interaction A→B without the reverse B→A entry. Cross-query edges are checked in both directions to avoid missing known interactions.
+- **Absolute edge normalization** — Edge visual weight (thickness/opacity) is normalized to the absolute STRING combined score range [0, 1000], not relative to the strongest edge in the current network. This ensures consistent visual encoding across different query sets.
+- **Average confidence metric** — The hub gene table reports *average interaction confidence* (mean STRING combined score of incident edges) rather than a sum. STRING combined scores are posterior probabilities and are not additive.
+
 ### Enrichment Analysis
 
 GO and KEGG enrichment is performed using a Fisher's Exact Test (hypergeometric test) with Benjamini-Hochberg FDR correction. Background sets are species-specific genome-wide annotations.
 
+**Key statistical details:**
+
+- **Hypergeometric p-values** are computed via exact iterative log-factorial summation (not Stirling's approximation), with results cached for O(1) reuse.
+- **Benjamini-Hochberg FDR** uses the total number of terms annotated in the background as the denominator *m* — including terms with zero overlap (k = 0) in the query set. This is the standard formulation and avoids anti-conservative FDR estimates that would arise from using only the number of terms with hits.
+- **FDR floor** is clamped at 10⁻¹⁶ for numerical stability, preventing −log₁₀(FDR) axes from compressing biologically meaningful differences.
+- **GO and KEGG plot types are tracked independently** — switching the GO enrichment view does not affect the KEGG view.
+
 ### Phylogeny Analysis
 
 Gene trees are derived from eggNOG v7 pre-computed protein family phylogenies, pruned to model organism species. Orthologous group (NOG) assignments from STRING v12.0 at the Eukaryota level (taxid 2759) link genes to trees.
+
+**Key design details:**
+
+- **Bootstrap support scale detection** — Internal node support values are determined by a tree-wide pre-scan: if any value exceeds 1, all values are treated as 0–100 scale. This eliminates the ambiguity at exactly 1.0 (100% on 0–1 scale vs 1% on 0–100 scale).
+- **Scale bar** — Uses a nice-number algorithm (1, 2, 5, 10 × magnitude) for a round value near 20% of tree depth.
+- **Query gene match transparency** — When exact protein ID matching falls back to species-level co-ortholog highlighting, an italic warning is displayed to the user.
+- **Provenance** — Each tree section cites its source: "Pre-computed gene tree from eggNOG v7 (Hernández-Plaza et al., 2026)".
+- **NEXUS export** — Single-quoted taxon labels and `[&U]` unrooted annotation for compatibility with FigTree, PAUP*, and MrBayes.
+
+### Enrichment Visualization
+
+**Publication-quality plots** are generated client-side as SVG:
+
+- **Dot plot gene count circles** use square-root area scaling (area proportional to count) to avoid perceptual bias from linear radius scaling.
+- **Hierarchical clustering dendrogram** axis is labeled "UPGMA Height" (= Jaccard distance / 2) rather than "Jaccard Distance," correctly reflecting that UPGMA merges pairs at half their pairwise distance.
+- **Export** injects computed CSS properties (stroke-width, stroke-dasharray, fill-opacity, visibility, etc.) ensuring SVG/PNG/PDF outputs match the on-screen rendering.
 
 ## Data Sources
 
