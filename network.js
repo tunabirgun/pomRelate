@@ -45,21 +45,26 @@ function buildPPINetworkSVG(resolvedGenes, ppiData, infoData, scoreThreshold, ge
         }
     }
 
-    // Cross-query edges
+    // Cross-query edges (check both directions since PPI data may be asymmetric)
     const qa = [...queryIds];
     for (let i = 0; i < qa.length; i++) {
         for (let j = i + 1; j < qa.length; j++) {
-            const ints = ppiData[qa[i]];
-            if (!ints) continue;
-            const link = ints.find(x => x.p === qa[j] && x.s >= scoreThreshold);
+            const ek = [qa[i], qa[j]].sort().join('|');
+            if (edgeSet.has(ek)) continue;
+            // Check A→B
+            let link = null;
+            const intsA = ppiData[qa[i]];
+            if (intsA) link = intsA.find(x => x.p === qa[j] && x.s >= scoreThreshold);
+            // Check B→A if not found
+            if (!link) {
+                const intsB = ppiData[qa[j]];
+                if (intsB) link = intsB.find(x => x.p === qa[i] && x.s >= scoreThreshold);
+            }
             if (link) {
-                const ek = [qa[i], qa[j]].sort().join('|');
-                if (!edgeSet.has(ek)) {
-                    edgeSet.add(ek);
-                    edges.push({ source: qa[i], target: qa[j], score: link.s });
-                    nodeMap[qa[i]].degree++;
-                    nodeMap[qa[j]].degree++;
-                }
+                edgeSet.add(ek);
+                edges.push({ source: qa[i], target: qa[j], score: link.s });
+                nodeMap[qa[i]].degree++;
+                nodeMap[qa[j]].degree++;
             }
         }
     }
@@ -84,11 +89,12 @@ function buildPPINetworkSVG(resolvedGenes, ppiData, infoData, scoreThreshold, ge
 
     runSimulationSync(nodes, edges, width, height);
 
-    // Calculate Weighted Degree (Score Sum)
+    // Calculate average interaction confidence per node
     nodes.forEach(n => {
-        n.scoreSum = edges
-            .filter(e => e.source === n.id || e.target === n.id)
-            .reduce((sum, e) => sum + e.score, 0);
+        const incident = edges.filter(e => e.source === n.id || e.target === n.id);
+        n.scoreSum = incident.length > 0
+            ? Math.round(incident.reduce((sum, e) => sum + e.score, 0) / incident.length)
+            : 0;
     });
 
     const svg = renderNetworkViewer(nodes, edges, width, height, taxid);
@@ -252,10 +258,9 @@ function renderNetworkViewer(nodes, edges, width, height, taxid) {
     const nodeElements = {};
     const edgeElements = [];
 
-    // Edges
-    const maxScore = Math.max(...edges.map(e => e.score)) || 1;
+    // Edges — normalize visual weight to absolute STRING score range [0, 1000]
     for (const e of edges) {
-        const scoreNorm = e.score / maxScore;
+        const scoreNorm = e.score / 1000;
         const width = 0.5 + scoreNorm * 2.5;
         const opacity = 0.2 + scoreNorm * 0.5;
 
