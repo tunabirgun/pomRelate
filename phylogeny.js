@@ -806,6 +806,27 @@ function buildPhylogenyTab(resolvedGenes, sourceTaxid, targetTaxids, phyloData) 
                 warn.textContent = 'Exact gene match not found in tree — highlighting all co-orthologs from the query species.';
                 treeContainer.appendChild(warn);
             }
+            // Show notice when tree has fewer species than the orthogroup
+            var treeSpecies = new Set();
+            var tipRe = /[\(,](\d+)\./g;
+            var tipMatch;
+            while ((tipMatch = tipRe.exec(te.newick)) !== null) {
+                treeSpecies.add(tipMatch[1]);
+            }
+            var ogSpecies = new Set(te.members.map(function(m) { return m.species; }));
+            if (treeSpecies.size < ogSpecies.size) {
+                var missingFromTree = [];
+                ogSpecies.forEach(function(sp) {
+                    if (!treeSpecies.has(sp)) missingFromTree.push(te.getSpeciesName(sp));
+                });
+                var notice = document.createElement('div');
+                notice.style.cssText = 'font-size:0.78rem;color:var(--text-muted);padding:0.3rem 0.5rem;margin-bottom:0.3rem;border-left:3px solid var(--border);background:var(--bg-panel);border-radius:2px;';
+                notice.innerHTML = '<strong>Tree covers ' + treeSpecies.size + '/' + ogSpecies.size + ' species.</strong> '
+                    + missingFromTree.length + ' species have orthologs in this group but were not included in the '
+                    + 'eggNOG v7 phylogenetic analysis for this protein family: '
+                    + '<em>' + missingFromTree.join(', ') + '</em>.';
+                treeContainer.appendChild(notice);
+            }
             treeContainer.appendChild(svg);
         } else {
             treeContainer.innerHTML = '<p class="no-data">Could not render tree.</p>';
