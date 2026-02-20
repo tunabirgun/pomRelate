@@ -385,6 +385,17 @@ function renderTreeSVG(root, opts) {
 
     const entries = layoutTree(root, plotW, plotH, useBL);
 
+    // Pre-scan support values to determine scale (0-1 vs 0-100)
+    // If ANY internal node numeric value > 1, all are treated as 0-100 scale
+    let supportScale01 = true;
+    for (const entry of entries) {
+        const nd = entry.node;
+        if (nd.children && nd.children.length > 0 && nd.name) {
+            const v = parseFloat(nd.name);
+            if (!isNaN(v) && v > 1) { supportScale01 = false; break; }
+        }
+    }
+
     const svg = _makeSVG(width, height);
     _addRect(svg, 0, 0, width, height, bgColor, 'plot-bg');
 
@@ -490,14 +501,12 @@ function renderTreeSVG(root, opts) {
             if (geneName) {
                 const support = parseFloat(geneName);
                 if (!isNaN(support)) {
-                    // Show values that look like bootstrap (0-1 or 0-100)
-                    const displayVal = support <= 1
+                    // Use pre-scanned scale to display as percentage
+                    const displayVal = supportScale01
                         ? (support * 100).toFixed(0)
                         : Math.round(support).toString();
-                    // Only show meaningful support values (>= 50%)
-                    const threshold = support <= 1 ? 0.5 : 50;
+                    const threshold = supportScale01 ? 0.5 : 50;
                     if (support >= threshold) {
-                        // Position above-left of junction to avoid branch overlap
                         _addText(g, x - 4, y - 8, displayVal, {
                             size: '7px', fill: supportColor, anchor: 'end'
                         });
@@ -511,14 +520,23 @@ function renderTreeSVG(root, opts) {
     if (useBL) {
         const totalD = maxDepth(root, 0);
         if (totalD > 0) {
-            const barLen = totalD * 0.2;
+            // Compute a "nice" round number for the scale bar (~10-30% of tree depth)
+            const target = totalD * 0.2;
+            const mag = Math.pow(10, Math.floor(Math.log10(target)));
+            const niceSteps = [1, 2, 5, 10];
+            var barLen = niceSteps.reduce(function(best, s) {
+                var v = s * mag;
+                return Math.abs(v - target) < Math.abs(best - target) ? v : best;
+            }, mag);
             const barPx = (barLen / totalD) * plotW;
             const barY = plotH + 20;
             const scaleColor = isDark ? '#b0b0b0' : '#333333';
             _addLine(g, 0, barY, barPx, barY, scaleColor, 2);
             _addLine(g, 0, barY - 4, 0, barY + 4, scaleColor, 1.5);
             _addLine(g, barPx, barY - 4, barPx, barY + 4, scaleColor, 1.5);
-            _addText(g, barPx / 2, barY + 16, barLen.toFixed(3), {
+            // Format: remove trailing zeros
+            var barLabel = barLen < 0.001 ? barLen.toExponential(1) : parseFloat(barLen.toPrecision(3)).toString();
+            _addText(g, barPx / 2, barY + 16, barLabel, {
                 size: '10px', fill: scaleColor, anchor: 'middle', weight: '500'
             });
         }
@@ -534,33 +552,30 @@ function renderTreeSVG(root, opts) {
  * eggNOG v7 trees use taxid.UniProtID format — same as STRING protein IDs,
  * so direct matching (S1) should work in most cases.
  * Fallback strategies are kept for edge cases.
- * @returns {Set} set of tree tip names that are the query gene
+ * @returns {Object} { tips: Set, strategy: 'exact'|'id'|'species'|'fallback' }
  */
 function _findQueryTipNames(matchedId, members, newickStr, sourceTaxid) {
     // Extract tip names from Newick
     var tipMatches = newickStr.match(/[\(,]([A-Za-z0-9_.]+):/g);
-    if (!tipMatches) return new Set([matchedId]);
+    if (!tipMatches) return { tips: new Set([matchedId]), strategy: 'fallback' };
     var tipNames = tipMatches.map(function(t) { return t.replace(/^[\(,]/, '').replace(/:$/, ''); });
 
     // S1: direct match (primary — works for eggNOG v7 trees)
-    if (tipNames.indexOf(matchedId) >= 0) return new Set([matchedId]);
+    if (tipNames.indexOf(matchedId) >= 0) return { tips: new Set([matchedId]), strategy: 'exact' };
 
     // S2: protein ID portion match (fallback)
     var proteinId = matchedId.indexOf('.') >= 0 ? matchedId.split('.').pop() : matchedId;
     for (var ti = 0; ti < tipNames.length; ti++) {
         var tipId = tipNames[ti].indexOf('.') >= 0 ? tipNames[ti].split('.').pop() : tipNames[ti];
-        if (tipId === proteinId) return new Set([tipNames[ti]]);
+        if (tipId === proteinId) return { tips: new Set([tipNames[ti]]), strategy: 'id' };
     }
 
     // S3: match all tips from the source species (same taxid prefix)
-    // STRING IDs and eggNOG v7 tip labels may use different identifiers for the same
-    // protein (e.g., locus tag vs UniProt accession). When S1/S2 fail, highlight all
-    // tips from the query gene's species — they are co-orthologs in the same orthogroup.
     var taxPrefix = sourceTaxid + '.';
     var sourceTips = tipNames.filter(function(t) { return t.indexOf(taxPrefix) === 0; });
-    if (sourceTips.length > 0) return new Set(sourceTips);
+    if (sourceTips.length > 0) return { tips: new Set(sourceTips), strategy: 'species' };
 
-    return new Set([matchedId]); // last resort fallback
+    return { tips: new Set([matchedId]), strategy: 'fallback' };
 }
 
 // ===== Taxid Name Resolution =====
@@ -659,6 +674,7 @@ function buildPhylogenyTab(resolvedGenes, sourceTaxid, targetTaxids, phyloData) 
         html += '<span class="result-gene-badge">' + _esc(query) + '</span>';
         html += ' <span class="tag tag-phylo">' + _esc(ogId) + '</span>';
         html += '</div>';
+        html += '<div style="font-size:0.78rem;color:var(--text-muted);margin:-0.3rem 0 0.4rem 0;">Pre-computed gene tree from eggNOG v7 (Hern\u00e1ndez-Plaza et al., 2026)</div>';
 
         // Export bar
         const treeContainerId = 'phylo-tree-' + ogId + '-' + proteinId.replace(/[^a-zA-Z0-9]/g, '_');
@@ -725,12 +741,14 @@ function buildPhylogenyTab(resolvedGenes, sourceTaxid, targetTaxids, phyloData) 
 
         // Queue tree rendering
         if (newick) {
+            var queryMatch = _findQueryTipNames(matchedId, members, newick, sourceTaxid);
             treeElements.push({
                 containerId: treeContainerId,
                 newick: newick,
                 ogId: ogId,
                 matchedId: matchedId,
-                queryGenes: _findQueryTipNames(matchedId, members, newick, sourceTaxid),
+                queryGenes: queryMatch.tips,
+                matchStrategy: queryMatch.strategy,
                 isTargetSpecies: isTargetSpecies,
                 getSpeciesName: getSpeciesName,
                 memberNames: memberNameMap,
@@ -781,6 +799,13 @@ function buildPhylogenyTab(resolvedGenes, sourceTaxid, targetTaxids, phyloData) 
         });
 
         if (svg) {
+            // Show warning if species-level fallback was used
+            if (te.matchStrategy === 'species') {
+                var warn = document.createElement('div');
+                warn.style.cssText = 'font-size:0.78rem;color:var(--text-muted);padding:0.25rem 0.5rem;font-style:italic;';
+                warn.textContent = 'Exact gene match not found in tree — highlighting all co-orthologs from the query species.';
+                treeContainer.appendChild(warn);
+            }
             treeContainer.appendChild(svg);
         } else {
             treeContainer.innerHTML = '<p class="no-data">Could not render tree.</p>';
@@ -921,12 +946,12 @@ function exportNexus(ogId) {
     nexus += '  DIMENSIONS NTAX=' + tips.length + ';\n';
     nexus += '  TAXLABELS\n';
     for (var i = 0; i < tips.length; i++) {
-        nexus += '    ' + tips[i].replace(/[^a-zA-Z0-9_.]/g, '_') + '\n';
+        nexus += "    '" + tips[i].replace(/'/g, "''") + "'\n";
     }
     nexus += '  ;\n';
     nexus += 'END;\n\n';
     nexus += 'BEGIN TREES;\n';
-    nexus += '  TREE ' + ogId + ' = ' + newickStr + '\n';
+    nexus += '  TREE ' + ogId + ' = [&U] ' + newickStr + '\n';
     nexus += 'END;\n';
 
     _downloadText(nexus, ogId + '_tree.nex', 'text/plain;charset=utf-8;');
