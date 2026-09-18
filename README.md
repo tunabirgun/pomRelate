@@ -103,10 +103,15 @@ Gene trees are derived from eggNOG v7 pre-computed protein family phylogenies, p
 
 ## Local Development
 
+pomRelate is a static site; any static file server works. The clone is about 495 MB because the species data is bundled.
+
 ```bash
+git clone https://github.com/tunabirgun/pomRelate.git
 cd pomRelate
 python -m http.server 8000
 ```
+
+Then open `http://localhost:8000` in your browser.
 
 ## Limitations
 
